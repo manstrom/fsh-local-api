@@ -1,42 +1,46 @@
-import Database from "better-sqlite3";
 import path from "path";
+import { open, Database } from "sqlite";
+import sqlite3 from "sqlite3";
 
-const DB_PATH = path.join(__dirname, "../../db/pokemon.db");
+const DB_PATH = path.join(process.cwd(), "db/pokemon.db");
 
-export function getDb(): Database.Database {
-  const db = new Database(DB_PATH);
-  db.pragma("journal_mode = WAL");
-  return db;
+let dbInstance: Database | null = null;
+
+export async function getDb(): Promise<Database> {
+  if (dbInstance) return dbInstance;
+
+  dbInstance = await open({
+    filename: DB_PATH,
+    driver: sqlite3.Database,
+  });
+
+  await dbInstance.run("PRAGMA journal_mode = WAL");
+  return dbInstance;
 }
 
-export function initDb(): Database.Database {
-  const db = getDb();
+export async function initDb(): Promise<Database> {
+  const db = await getDb();
 
-  db.exec(`
+  await db.exec(`
     CREATE TABLE IF NOT EXISTS pokemon (
-      id        INTEGER PRIMARY KEY AUTOINCREMENT,
-      name      TEXT    NOT NULL UNIQUE,
-      type      TEXT    NOT NULL,
-      hp        INTEGER NOT NULL CHECK(hp > 0),
-      attack    INTEGER NOT NULL CHECK(attack >= 0),
-      caught    INTEGER NOT NULL DEFAULT 0 CHECK(caught IN (0, 1)),
-      created_at TEXT   NOT NULL DEFAULT (datetime('now'))
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      name       TEXT    NOT NULL UNIQUE,
+      type       TEXT    NOT NULL,
+      hp         INTEGER NOT NULL CHECK(hp > 0),
+      attack     INTEGER NOT NULL CHECK(attack >= 0),
+      caught     INTEGER NOT NULL DEFAULT 0 CHECK(caught IN (0, 1)),
+      created_at TEXT    NOT NULL DEFAULT (datetime('now'))
     );
   `);
 
   return db;
 }
 
-export function seedDb(): void {
-  const db = initDb();
+export async function seedDb(): Promise<void> {
+  const db = await initDb();
 
-  db.exec("DELETE FROM pokemon;");
-  db.exec("DELETE FROM sqlite_sequence WHERE name='pokemon';");
-
-  const insert = db.prepare(`
-    INSERT INTO pokemon (name, type, hp, attack, caught)
-    VALUES (@name, @type, @hp, @attack, @caught)
-  `);
+  await db.run("DELETE FROM pokemon;");
+  await db.run("DELETE FROM sqlite_sequence WHERE name='pokemon';");
 
   const starterPokemon = [
     { name: "Bulbasaur",  type: "Grass/Poison", hp: 45,  attack: 49,  caught: 1 },
@@ -49,16 +53,16 @@ export function seedDb(): void {
     { name: "Snorlax",    type: "Normal",        hp: 160, attack: 110, caught: 0 },
   ];
 
-  const insertMany = db.transaction((pokemons: typeof starterPokemon) => {
-    for (const p of pokemons) insert.run(p);
-  });
-
-  insertMany(starterPokemon);
+  for (const p of starterPokemon) {
+    await db.run(
+      "INSERT INTO pokemon (name, type, hp, attack, caught) VALUES (?, ?, ?, ?, ?)",
+      [p.name, p.type, p.hp, p.attack, p.caught]
+    );
+  }
 
   console.log("✅ Database seeded with 8 Pokémon!");
-  db.close();
 }
 
 if (require.main === module) {
-  seedDb();
+  seedDb().catch(console.error);
 }

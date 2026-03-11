@@ -3,10 +3,14 @@ import request from "supertest";
 import { app } from "../src/app";
 import { seedDb } from "../src/db/database";
 
-beforeAll(() => {
-  seedDb();
+// Reset the database before all tests so we always start clean
+beforeAll(async () => {
+  await seedDb();
 });
 
+// ═══════════════════════════════════════════════════════════
+//  HEALTH CHECK
+// ═══════════════════════════════════════════════════════════
 describe("GET /health", () => {
   it("should return status 200", async () => {
     const res = await request(app).get("/health");
@@ -19,6 +23,9 @@ describe("GET /health", () => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════
+//  GET /api/pokemon  — Hämta alla Pokémon
+// ═══════════════════════════════════════════════════════════
 describe("GET /api/pokemon", () => {
   it("should return status 200", async () => {
     const res = await request(app).get("/api/pokemon");
@@ -40,6 +47,9 @@ describe("GET /api/pokemon", () => {
   it.todo("should return empty array when no pokemon match the type filter");
 });
 
+// ═══════════════════════════════════════════════════════════
+//  GET /api/pokemon/:id  — Hämta en Pokémon
+// ═══════════════════════════════════════════════════════════
 describe("GET /api/pokemon/:id", () => {
   it("should return status 200 for an existing pokemon", async () => {
     const res = await request(app).get("/api/pokemon/1");
@@ -57,17 +67,13 @@ describe("GET /api/pokemon/:id", () => {
   it.todo("'caught' field should be a boolean, not a number");
 });
 
+// ═══════════════════════════════════════════════════════════
+//  POST /api/pokemon  — Skapa en ny Pokémon
+// ═══════════════════════════════════════════════════════════
 describe("POST /api/pokemon", () => {
   it("should create a new pokemon and return 201", async () => {
-    const newPokemon = {
-      name: "Testemon",
-      type: "Normal",
-      hp: 50,
-      attack: 40,
-    };
-
+    const newPokemon = { name: "Testemon", type: "Normal", hp: 50, attack: 40 };
     const res = await request(app).post("/api/pokemon").send(newPokemon);
-
     expect(res.status).toBe(201);
     expect(res.body.name).toBe("Testemon");
     expect(res.body.id).toBeDefined();
@@ -80,12 +86,14 @@ describe("POST /api/pokemon", () => {
   it.todo("should return 400 when hp is 0 or negative");
 });
 
+// ═══════════════════════════════════════════════════════════
+//  PATCH /api/pokemon/:id  — Uppdatera en Pokémon
+// ═══════════════════════════════════════════════════════════
 describe("PATCH /api/pokemon/:id", () => {
   it("should update a field and return the updated pokemon", async () => {
     const res = await request(app)
-      .patch("/api/pokemon/5")
+      .patch("/api/pokemon/5") // Gengar (caught: false)
       .send({ caught: true });
-
     expect(res.status).toBe(200);
     expect(res.body.caught).toBe(true);
     expect(res.body.name).toBe("Gengar");
@@ -97,15 +105,16 @@ describe("PATCH /api/pokemon/:id", () => {
   it.todo("should persist the updated name when fetched again");
 });
 
+// ═══════════════════════════════════════════════════════════
+//  DELETE /api/pokemon/:id  — Ta bort en Pokémon
+// ═══════════════════════════════════════════════════════════
 describe("DELETE /api/pokemon/:id", () => {
   it("should delete a pokemon and return 200 with a confirmation message", async () => {
     const created = await request(app)
       .post("/api/pokemon")
       .send({ name: "DeleteMe", type: "Ghost", hp: 10, attack: 5 });
-
     const id = created.body.id;
     const res = await request(app).delete(`/api/pokemon/${id}`);
-
     expect(res.status).toBe(200);
     expect(res.body.message).toContain("DeleteMe");
   });
