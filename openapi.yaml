@@ -1,0 +1,277 @@
+openapi: "3.0.0"
+
+info:
+  title: Pokémon API
+  version: "1.0.0"
+  description: En lokal Pokémon API för testautomationskursen på FSH 🎮
+
+servers:
+  - url: http://localhost:3000
+
+tags:
+  - name: Health
+    description: Hälsokontroll
+  - name: Pokemon
+    description: CRUD-operationer för Pokémon
+
+components:
+  schemas:
+    Pokemon:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: Pikachu
+        type:
+          type: string
+          example: Electric
+        hp:
+          type: integer
+          example: 35
+        attack:
+          type: integer
+          example: 55
+        caught:
+          type: boolean
+          example: true
+        created_at:
+          type: string
+          example: "2024-01-15 12:00:00"
+
+    CreatePokemon:
+      type: object
+      required:
+        - name
+        - type
+        - hp
+        - attack
+      properties:
+        name:
+          type: string
+          example: Ditto
+        type:
+          type: string
+          example: Normal
+        hp:
+          type: integer
+          example: 48
+        attack:
+          type: integer
+          example: 48
+        caught:
+          type: boolean
+          example: false
+
+    UpdatePokemon:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Raichu
+        type:
+          type: string
+          example: Electric
+        hp:
+          type: integer
+          example: 60
+        attack:
+          type: integer
+          example: 90
+        caught:
+          type: boolean
+          example: true
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Pokémon with id 99 not found"
+
+paths:
+  /health:
+    get:
+      summary: Hälsokontroll
+      tags:
+        - Health
+      responses:
+        "200":
+          description: API:et är igång
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  message:
+                    type: string
+                    example: "Pokémon API is running! 🎮"
+
+  /api/pokemon:
+    get:
+      summary: Hämta alla Pokémon
+      tags:
+        - Pokemon
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Filtrera efter typ, t.ex. Fire eller Water
+      responses:
+        "200":
+          description: Lista med Pokémon
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Pokemon"
+                  count:
+                    type: integer
+                    example: 8
+
+    post:
+      summary: Skapa en ny Pokémon
+      tags:
+        - Pokemon
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePokemon"
+      responses:
+        "201":
+          description: Pokémon skapad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pokemon"
+        "400":
+          description: Ogiltiga eller saknade fält
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: En Pokémon med samma namn finns redan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/pokemon/{id}:
+    get:
+      summary: Hämta en Pokémon
+      tags:
+        - Pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Pokémon hittad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pokemon"
+        "400":
+          description: Ogiltigt id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Pokémon hittades inte
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    patch:
+      summary: Uppdatera en Pokémon
+      tags:
+        - Pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePokemon"
+      responses:
+        "200":
+          description: Pokémon uppdaterad
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Pokemon"
+        "400":
+          description: Ogiltiga fält
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Pokémon hittades inte
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+    delete:
+      summary: Ta bort en Pokémon
+      tags:
+        - Pokemon
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Pokémon borttagen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Pokémon 'Pikachu' was deleted"
+                  deleted:
+                    $ref: "#/components/schemas/Pokemon"
+        "400":
+          description: Ogiltigt id
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "404":
+          description: Pokémon hittades inte
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
