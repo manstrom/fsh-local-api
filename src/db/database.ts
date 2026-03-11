@@ -1,8 +1,15 @@
 import path from "path";
+import fs from "fs";
 import { open, Database } from "sqlite";
 import sqlite3 from "sqlite3";
 
-const DB_PATH = path.join(process.cwd(), "db/pokemon.db");
+const DB_DIR  = path.join(process.cwd(), "db");
+const DB_PATH = path.join(DB_DIR, "pokemon.db");
+
+// Skapa db/-mappen automatiskt om den inte finns
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
+}
 
 let dbInstance: Database | null = null;
 
